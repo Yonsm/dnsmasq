@@ -999,6 +999,7 @@ extern struct daemon {
   struct resolvc default_resolv, *resolv_files;
   time_t last_resolv;
   char *servers_file;
+  char *gfwlist;
   struct mx_srv_record *mxnames;
   struct naptr *naptr;
   struct txt_record *txt, *rr;
@@ -1311,6 +1312,7 @@ char *option_string(int prot, unsigned int opt, unsigned char *val,
 		    int opt_len, char *buf, int buf_len);
 void reread_dhcp(void);
 void read_servers_file(void);
+void load_gfwlist(void);
 void set_option_bool(unsigned int opt);
 void reset_option_bool(unsigned int opt);
 struct hostsfile *expand_filelist(struct hostsfile *list);

@@ -167,6 +167,7 @@ struct myoption {
 #define LOPT_IGNORE_CLID   358
 #define LOPT_SINGLE_PORT   359
 #define LOPT_SCRIPT_TIME   360
+#define LOPT_GFWLIST       361
  
 #ifdef HAVE_GETOPT_LONG
 static const struct option opts[] =  
@@ -339,6 +340,7 @@ static const struct myoption opts[] =
     { "dumpfile", 1, 0, LOPT_DUMPFILE },
     { "dumpmask", 1, 0, LOPT_DUMPMASK },
     { "dhcp-ignore-clid", 0, 0,  LOPT_IGNORE_CLID },
+    { "gfwlist", 1, 0, LOPT_GFWLIST },
     { NULL, 0, 0, 0 }
   };
 
@@ -518,6 +520,7 @@ static struct {
   { LOPT_DUMPFILE, ARG_ONE, "<path>", gettext_noop("Path to debug packet dump file"), NULL },
   { LOPT_DUMPMASK, ARG_ONE, "<hex>", gettext_noop("Mask which packets to dump"), NULL },
   { LOPT_SCRIPT_TIME, OPT_LEASE_RENEW, NULL, gettext_noop("Call dhcp-script when lease expiry changes."), NULL },
+  { LOPT_GFWLIST, ARG_ONE, "<path>", gettext_noop("Path to gfwlist file"), NULL },
   { 0, 0, NULL, NULL, NULL }
 }; 
 
@@ -1948,7 +1951,11 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
     case LOPT_SERVERS_FILE:
       daemon->servers_file = opt_string_alloc(arg);
       break;
-      
+
+    case LOPT_GFWLIST:
+      daemon->gfwlist = opt_string_alloc(arg);
+      break;
+
     case 'm':  /* --mx-host */
       {
 	int pref = 1;
@@ -4867,7 +4874,53 @@ void read_servers_file(void)
   
   read_file(daemon->servers_file, f, LOPT_REV_SERV);
 }
- 
+
+void load_gfwlist(void)
+{
+	char *server = NULL, *ipset = NULL;
+	for (char *p = daemon->gfwlist; *p; p++) {
+		if (*p == '@') server = p;
+		else if (*p == '^') ipset = p;
+	}
+
+	if (server) *server++ = 0;
+	if (ipset) *ipset++ = 0;
+	const char *server2 = server ?: "127.0.0.1#54";
+	my_syslog(LOG_INFO, _("gfwlist=%s, server=%s, ipset=%s"), daemon->gfwlist, server2, ipset ?: "NONE");
+
+	FILE *f;
+	if (!(f = fopen(daemon->gfwlist, "r"))) {
+		my_syslog(LOG_ERR, _("cannot read %s: %s"), daemon->gfwlist, strerror(errno));
+		return;
+	}
+
+	daemon->namebuff[0] = '/';
+	char *buff = daemon->namebuff + 1;
+	while (fgets(buff, MAXDNAME, f))
+	{
+		char *p = buff + strlen(buff);
+		while (p[-1] == '\n' || p[-1] == '\r' || p[-1] == ' ' || p[-1] == '\t') p--;
+		*p++ = '/';
+
+		if (ipset) {
+			strcpy(p, ipset);
+#ifdef HAVE_IPSET
+			one_opt(LOPT_IPSET, daemon->namebuff, _("gfwlist"), _("error"), 0, 0);
+			p[-1] = '/';
+#else
+			my_syslog(LOG_ERR, _("IPSET NOT SUPPORT: %s"), daemon->namebuff);
+			break;
+#endif
+		}
+
+		strcpy(p, server2);
+		one_opt('S', daemon->namebuff, _("gfwlist"), _("error"), 0, 0);
+	}
+
+	if (server) server[-1] = '@';
+	if (ipset) ipset[-1] = '^';
+	fclose(f);
+} 
 
 #ifdef HAVE_DHCP
 static void clear_dynamic_conf(void)

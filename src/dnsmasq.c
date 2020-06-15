@@ -1415,6 +1415,12 @@ static void async_event(int pipe, time_t now)
 		check = 1;
 	      }
 
+	    if (daemon->gfwlist)
+	      {
+		load_gfwlist();
+		check = 1;
+	      }
+
 	    if (daemon->servers_file)
 	      {
 		read_servers_file();
