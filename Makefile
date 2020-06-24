@@ -158,7 +158,7 @@ $(objs:.o=.c) $(hdrs):
 $(objs): $(copts_conf) $(hdrs)
 
 .c.o:
-	$(CC) $(CFLAGS) $(COPTS) $(i18n) $(build_cflags) $(RPM_OPT_FLAGS) -c $<	
+	$(CC) $(CFLAGS) $(COPTS) $(i18n) $(build_cflags) $(RPM_OPT_FLAGS) -c -g -O0 $<	
 
 dnsmasq : $(objs)
 	$(CC) $(LDFLAGS) -o $@ $(objs) $(build_libs) $(LIBS) 

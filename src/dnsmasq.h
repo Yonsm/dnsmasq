@@ -1306,6 +1306,15 @@ void set_log_writer(void);
 void check_log_writer(int force);
 void flush_log(void);
 
+#define _LOG_ERR(s, ...) fprintf(stderr, _("%s@%d => " s "\n"), __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#if 1
+#define _LOG_DBG(s, ...) _LOG_ERR(s, ##__VA_ARGS__)
+#define _LOG_DBG_HEX(d, n) {char buf[2048]; for (int i = 0; i < (int)(n); i++) sprintf(buf + i * 2, "%02X", (int)(*((char *)d + i))); _LOG_DBG("%s", buf);}
+#else
+#define _LOG_DBG(s, ...) ((void)0)
+#define _LOG_DBG_HEX(d, n) ((void)0)
+#endif
+
 /* option.c */
 void read_opts (int argc, char **argv, char *compile_opts);
 char *option_string(int prot, unsigned int opt, unsigned char *val, 
