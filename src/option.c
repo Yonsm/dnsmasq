@@ -3259,7 +3259,9 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 	new->clid = NULL;
 #ifdef HAVE_DHCP6
 	new->addr6 = NULL;
+	char *addr6 = NULL;
 #endif
+	char *addr = NULL;
 
 	while (arg)
 	  {
@@ -3355,6 +3357,7 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 		      new_addr->flags |= ADDRLIST_WILDCARD;
 		    
 		    new->flags |= CONFIG_ADDR6;
+			addr6 = arg;
 		  }
 #endif
 		else
@@ -3380,6 +3383,7 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 		
 		new->addr = in;
 		new->flags |= CONFIG_ADDR;
+		addr = arg;
 		
 		/* If the same IP appears in more than one host config, then DISCOVER
 		   for one of the hosts will get the address, but REQUEST will be NAKed,
@@ -3452,6 +3456,16 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 			
 			new->flags |= CONFIG_NAME;
 			new->domain = strip_hostname(new->hostname);			
+			if (addr || addr6) {
+				char *buf = daemon->namebuff;
+				for (char *name = new->hostname; *name; name++) *buf++ = *name;
+				if (addr)
+					for (*buf++ = ','; *addr; addr++) *buf++ = *addr;
+				if (addr6)
+					for (*buf++ = ','; *addr6; addr6++) *buf++ = *addr6;
+				*buf = 0;
+				one_opt(LOPT_HOST_REC, daemon->namebuff, _("dhcp-host"), _("error"), 0, 0);
+			}
 		      }
 		  }
 		else if (isdig)
