@@ -187,6 +187,7 @@ struct myoption {
 #define LOPT_NORR          378
 #define LOPT_NO_IDENT      379
 #define LOPT_GFWLIST       380
+#define LOPT_DHCP_TO_HOST  381
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option opts[] =  
@@ -378,6 +379,7 @@ static const struct myoption opts[] =
     { "use-stale-cache", 2, 0 , LOPT_STALE_CACHE },
     { "no-ident", 0, 0, LOPT_NO_IDENT },
     { "gfwlist", 1, 0, LOPT_GFWLIST },
+    { "dhcp-to-host", 0, 0, LOPT_DHCP_TO_HOST },
     { NULL, 0, 0, 0 }
   };
 
@@ -576,6 +578,7 @@ static struct {
   { LOPT_NORR, OPT_NORR, NULL, gettext_noop("Suppress round-robin ordering of DNS records."), NULL },
   { LOPT_NO_IDENT, OPT_NO_IDENT, NULL, gettext_noop("Do not add CHAOS TXT records."), NULL },
   { LOPT_GFWLIST, ARG_DUP, "<path|domain>[@server][^ipset]", gettext_noop("GFWList path or domain to special server (default 127.0.0.1#5354) and ipset (default gfwlist, ^ only to disable)"), NULL },
+  { LOPT_DHCP_TO_HOST, OPT_DHCP_TO_HOST, NULL, gettext_noop("Keep DHCP hostname valid at all times."), NULL },
   { 0, 0, NULL, NULL, NULL }
 }; 
 

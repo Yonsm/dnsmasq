@@ -282,7 +282,8 @@ struct event_desc {
 #define OPT_STRIP_MAC      70
 #define OPT_NORR           71
 #define OPT_NO_IDENT       72
-#define OPT_LAST           73
+#define OPT_DHCP_TO_HOST   73
+#define OPT_LAST           74
 
 #define OPTION_BITS (sizeof(unsigned int)*8)
 #define OPTION_SIZE ( (OPT_LAST/OPTION_BITS)+((OPT_LAST%OPTION_BITS)!=0) )
