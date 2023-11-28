@@ -49,3 +49,16 @@ dhcp-to-host
 ```
 
 **改动内容**：在适当的时机调用 dnsmasq 原有代码实现相关功能。
+
+## 3. 支持 TCP DNS
+
+可替代 `dns2tcp`/`dns-forwarder` 功能，要启用此功能可设置如下 `server=/google.com/8.8.8.8~53`，即原 UDP DNS 的 `#` 改成 `~`。
+
+尽量小的改动方案来实现 TCP DNS 功能，对 dnsmasq 的原主链路的入侵影响控制到最小：
+
+- 主流程：只切入到 forward UDP 的一个函数中，向上游 UDP Server 发送请求的时候，不发了，改为我们自己的 TCP DNS 的实现。
+- TCP DNS 请求成功后，直接向本机发送 UDP 结果；原主链路收到 UDP 结果后的检查 server 的部分需接受本机发送的结果，也有一点小更改。
+- 配置解析：解析到 TCP DNS 后记录下来。
+- 日志打印时的相关 `#`/`~` 字符呈现。
+
+_本想实现 TCP connection 复用，但竟然 [RFC 没有支持](https://serverfault.com/questions/761172/long-lived-tcp-connection-to-dns-servers)。不复用 TCP 连接的情况下，初次查询耗时为 160 毫秒左右，比 dns2tcp 略好 5 ～ 10 毫秒，胜在少了一个进程，少了很多代码，简单。_
