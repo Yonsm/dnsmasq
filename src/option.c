@@ -186,6 +186,7 @@ struct myoption {
 #define LOPT_STALE_CACHE   377
 #define LOPT_NORR          378
 #define LOPT_NO_IDENT      379
+#define LOPT_GFWLIST       380
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option opts[] =  
@@ -376,6 +377,7 @@ static const struct myoption opts[] =
     { "fast-dns-retry", 2, 0, LOPT_FAST_RETRY },
     { "use-stale-cache", 2, 0 , LOPT_STALE_CACHE },
     { "no-ident", 0, 0, LOPT_NO_IDENT },
+    { "gfwlist", 1, 0, LOPT_GFWLIST },
     { NULL, 0, 0, 0 }
   };
 
@@ -573,6 +575,7 @@ static struct {
   { LOPT_QUIET_TFTP, OPT_QUIET_TFTP, NULL, gettext_noop("Do not log routine TFTP."), NULL },
   { LOPT_NORR, OPT_NORR, NULL, gettext_noop("Suppress round-robin ordering of DNS records."), NULL },
   { LOPT_NO_IDENT, OPT_NO_IDENT, NULL, gettext_noop("Do not add CHAOS TXT records."), NULL },
+  { LOPT_GFWLIST, ARG_DUP, "<path|domain>[@server][^ipset]", gettext_noop("GFWList path or domain to special server (default 127.0.0.1#5354) and ipset (default gfwlist, ^ only to disable)"), NULL },
   { 0, 0, NULL, NULL, NULL }
 }; 
 
@@ -1949,6 +1952,79 @@ void reset_option_bool(unsigned int opt)
   option_var(opt) &= ~(option_val(opt));
 }
 
+static int one_opt(int option, char *arg, char *errstr, char *gen_err, int command_line, int servers_only);
+void add_gfwline(char *gfwline, const char *server, const char *ipset
+#ifndef HAVE_IPSET
+__attribute__((unused))
+#endif
+)
+{
+  char *end = gfwline + 1;
+  while (*end && *end != '#' && *end != '\n' && *end != '\r') end++;
+  for (char *buf = end; buf >= gfwline; buf--) {
+    if (*buf == ',' || buf == gfwline) {
+      if (buf + 1 < end) {
+        *buf = '/';
+        *end++ = '/';
+
+#ifdef HAVE_IPSET
+        if (*ipset) {
+          strcpy(end, ipset);
+          one_opt(LOPT_IPSET, buf, _("gfwlist"), _("error"), 0, 0);
+          end[-1] = '/';
+        }
+#endif
+        strcpy(end, server);
+        one_opt('S', buf, _("gfwlist"), _("error"), 0, 0);
+     }
+      end = buf;
+    }
+  }
+}
+
+void load_gfwlist(char *gfwlist)
+{
+  char *cfg_server = NULL, *cfg_ipset = NULL;
+  for (char *p = gfwlist; *p; p++) {
+    if (*p == '@') cfg_server = p;
+    else if (*p == '^') cfg_ipset = p;
+ }
+
+  const char *server, *ipset;
+  if (cfg_server) {
+    *cfg_server = 0;
+    server = cfg_server + 1;
+  } else {
+    server = "127.0.0.1#5354";
+  }
+  if (cfg_ipset) {
+    *cfg_ipset = 0;
+    ipset = cfg_ipset + 1;
+  } else {
+    ipset = "gfwlist";
+  }
+
+  FILE *f = NULL;
+  do {
+    char buf[MAXDNAME];
+    if (*gfwlist == '/' || *gfwlist == '.' ) {
+      if (!(f = fopen(gfwlist, "r"))) {
+        my_syslog(LOG_ERR, _("cannot read %s: %s"), gfwlist, strerror(errno));
+        break;
+      }
+      while (fgets(buf+ 1, MAXDNAME - 1, f))
+        add_gfwline(buf, server, ipset);
+    } else {
+      strncpy(buf + 1, gfwlist, MAXDNAME - 1);
+      add_gfwline(buf, server, ipset);
+    }
+  } while (0);
+
+  if (f) fclose(f);
+  if (cfg_server) *cfg_server = '@';
+  if (cfg_ipset) *cfg_ipset = '^';
+}
+
 static int one_opt(int option, char *arg, char *errstr, char *gen_err, int command_line, int servers_only)
 {      
   int i;
@@ -2270,7 +2346,11 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
     case LOPT_SERVERS_FILE:
       daemon->servers_file = opt_string_alloc(arg);
       break;
-      
+
+    case LOPT_GFWLIST:
+      load_gfwlist(arg);
+      break;
+
     case 'm':  /* --mx-host */
       {
 	int pref = 1;
