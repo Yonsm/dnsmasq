@@ -556,6 +556,7 @@ union mysockaddr {
 #define SERV_LOOP            8192  /* server causes forwarding loop */
 #define SERV_DO_DNSSEC      16384  /* Validate DNSSEC when using this server */
 #define SERV_GOT_TCP        32768  /* Got some data from the TCP connection */
+#define SERV_TCP_DNS        65536  /* Is TCP server */
 
 struct serverfd {
   int fd;
@@ -596,6 +597,7 @@ struct server {
 #ifdef HAVE_LOOP
   u32 uid;
 #endif
+ u32 tcpdns;
 };
 
 /* First four fields must match struct server in next three definitions.. */
@@ -1300,7 +1302,7 @@ struct server_details {
   struct addrinfo *hostinfo, *orig_hostinfo;
   char *interface, *source, *scope_id, *interface_opt;
   int serv_port, source_port, addr_type, scope_index, valid;
-  u16 *flags;
+  u32 *flags;
 };
 
 /* cache.c */

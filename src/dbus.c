@@ -289,7 +289,7 @@ static DBusMessage* dbus_read_servers_ex(DBusMessage *message, int strings)
     {
       const char *str = NULL;
       union  mysockaddr addr, source_addr;
-      u16 flags = 0;
+      u32 flags = 0;
       char interface[IF_NAMESIZE];
       char *str_addr, *str_domain = NULL;
       struct server_details sdetails = { 0 };

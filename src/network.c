@@ -1573,6 +1573,8 @@ void check_servers(int no_loop_check)
 
   for (count = 0, serv = daemon->servers; serv; serv = serv->next)
     {
+      char sep_chr = serv->tcpdns ? '~' : '#';
+
       /* Init edns_pktsz for newly created server records. */
       if (serv->edns_pktsz == 0)
 	serv->edns_pktsz = daemon->edns_pktsz;
@@ -1660,16 +1662,16 @@ void check_servers(int no_loop_check)
 	  else
 	    s1 = _("domain"), s2 = serv->domain, s4 = (serv->flags & SERV_WILDCARD) ? "*" : "";
 	  
-	  my_syslog(LOG_INFO, _("using nameserver %s#%d for %s %s%s %s"), daemon->namebuff, port, s1, s4, s2, s3);
+	  my_syslog(LOG_INFO, _("using nameserver %s%c%d for %s %s%s %s"), daemon->namebuff, sep_chr, port, s1, s4, s2, s3);
 	}
 #ifdef HAVE_LOOP
       else if (serv->flags & SERV_LOOP)
-	my_syslog(LOG_INFO, _("NOT using nameserver %s#%d - query loop detected"), daemon->namebuff, port); 
+	my_syslog(LOG_INFO, _("NOT using nameserver %s%c%d - query loop detected"), daemon->namebuff, sep_chr, port); 
 #endif
       else if (serv->interface[0] != 0)
-	my_syslog(LOG_INFO, _("using nameserver %s#%d(via %s)"), daemon->namebuff, port, serv->interface); 
+	my_syslog(LOG_INFO, _("using nameserver %s%c%d(via %s)"), daemon->namebuff, sep_chr, port, serv->interface); 
       else
-	my_syslog(LOG_INFO, _("using nameserver %s#%d"), daemon->namebuff, port); 
+	my_syslog(LOG_INFO, _("using nameserver %s%c%d"), daemon->namebuff, sep_chr, port); 
 
     }
   

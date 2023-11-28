@@ -741,6 +741,7 @@ int add_update_server(int flags,
     }
     
   serv->flags = flags;
+  serv->tcpdns = (flags & SERV_TCP_DNS) ? 1 : 0;
   serv->domain = alloc_domain;
   serv->domain_len = strlen(alloc_domain);
   

@@ -889,8 +889,11 @@ char *parse_server(char *arg, struct server_details *sdetails)
       (portno = split_chr(sdetails->source, '#')) &&
       !atoi_check16(portno, &sdetails->source_port))
     return _("bad port");
-  
-  if ((portno = split_chr(arg, '#')) && /* is there a port no. */
+
+  portno = split_chr(arg, '#');
+  if (portno == NULL && (portno = split_chr(arg, '~')))
+    *sdetails->flags |= SERV_TCP_DNS;
+  if (portno && /* is there a port no. */
       !atoi_check16(portno, &sdetails->serv_port))
     return _("bad port");
   
@@ -1104,7 +1107,7 @@ static char *domain_rev4(int from_file, char *server, struct in_addr *addr4, int
   int i, j;
   char *string;
   int msize;
-  u16 flags = 0;
+  u32 flags = 0;
   char domain[29]; /* strlen("xxx.yyy.zzz.ttt.in-addr.arpa")+1 */
   union mysockaddr serv_addr, source_addr;
   char interface[IF_NAMESIZE+1];
@@ -1187,7 +1190,7 @@ static char *domain_rev6(int from_file, char *server, struct in6_addr *addr6, in
   int i, j;
   char *string;
   int msize;
-  u16 flags = 0;
+  u32 flags = 0;
   char domain[73]; /* strlen("32*<n.>ip6.arpa")+1 */
   union mysockaddr serv_addr, source_addr;
   char interface[IF_NAMESIZE+1];
@@ -3052,7 +3055,7 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
     case 'A':            /*  --address */
       {
 	char *lastdomain = NULL, *domain = "", *cur_domain;
-	u16 flags = 0;
+	u32 flags = 0;
 	char *err;
 	union all_addr addr;
 	union mysockaddr serv_addr, source_addr;

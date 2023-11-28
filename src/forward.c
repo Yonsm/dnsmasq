@@ -15,6 +15,7 @@
 */
 
 #include "dnsmasq.h"
+#include "tcpdns.h"
 
 static struct frec *get_new_frec(time_t now, struct server *serv, int force);
 static struct frec *lookup_frec(unsigned short id, int fd, void *hash, int *firstp, int *lastp);
@@ -519,8 +520,8 @@ static int forward_query(int udpfd, union mysockaddr *udpaddr,
 		PUTSHORT(srv->edns_pktsz, pheader);
 	    }
 #endif
-	  
-	  if (retry_send(sendto(fd, (char *)header, plen, 0,
+      ssize_t (*sendto_ptr)(int, const void *, size_t, int, const struct sockaddr *, socklen_t) = srv->tcpdns ? tcpdns_sendto : sendto;
+	  if (retry_send(sendto_ptr(fd, (char *)header, plen, 0,
 				&srv->addr.sa,
 				sa_len(&srv->addr))))
 	    continue;
@@ -1106,6 +1107,12 @@ void reply_query(int fd, time_t now)
     serveraddr.in6.sin6_flowinfo = 0;
   
   header = (struct dns_header *)daemon->packet;
+  if (((TCPDNS_SESSION *)header)->magic == 'TDNS') {
+    n -= sizeof(TCPDNS_SESSION);
+    addrlen = ((TCPDNS_SESSION *)header)->nserv;
+    memcpy(&serveraddr, &((TCPDNS_SESSION *)header)->serv, addrlen);
+    header = (struct dns_header *)((char *)header + sizeof(TCPDNS_SESSION));
+   }
 
   if (n < (int)sizeof(struct dns_header) || !(header->hb3 & HB3_QR))
     return;
